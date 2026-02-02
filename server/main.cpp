@@ -26,6 +26,7 @@
 #include "Rtp/RtpServer.h"
 #include "WebApi.h"
 #include "WebHook.h"
+#include "PluginLoader.h"
 
 #if defined(ENABLE_WEBRTC)
 #include "../webrtc/WebRtcTransport.h"
@@ -406,6 +407,11 @@ int start_main(int argc,char *argv[]) {
         InfoL << "已启动http api 接口";
         installWebHook();
         InfoL << "已启动http hook 接口";
+        
+        // 加载插件  [AUTO-TRANSLATED:load plugins]
+        // Load plugins
+        loadPlugins();
+        InfoL << "插件加载完成";
 
         try {
             // rtsp服务器，端口默认554  [AUTO-TRANSLATED:07937d81]
@@ -496,6 +502,10 @@ int start_main(int argc,char *argv[]) {
 #endif
         sem.wait();
     }
+    // 卸载插件  [AUTO-TRANSLATED:unload plugins]
+    // Unload plugins
+    unloadPlugins();
+    InfoL << "插件卸载完成";
     unInstallWebApi();
     unInstallWebHook();
     onProcessExited();
