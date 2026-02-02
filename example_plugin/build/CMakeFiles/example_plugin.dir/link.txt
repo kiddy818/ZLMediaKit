@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -Wl,--unresolved-symbols=ignore-all -Wl,--dependency-file=CMakeFiles/example_plugin.dir/link.d -shared -Wl,-soname,example_plugin.so -o example_plugin.so CMakeFiles/example_plugin.dir/example_plugin.cpp.o

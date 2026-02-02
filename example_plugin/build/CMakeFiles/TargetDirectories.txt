@@ -1,0 +1,3 @@
+/home/runner/work/ZLMediaKit/ZLMediaKit/example_plugin/build/CMakeFiles/example_plugin.dir
+/home/runner/work/ZLMediaKit/ZLMediaKit/example_plugin/build/CMakeFiles/edit_cache.dir
+/home/runner/work/ZLMediaKit/ZLMediaKit/example_plugin/build/CMakeFiles/rebuild_cache.dir
