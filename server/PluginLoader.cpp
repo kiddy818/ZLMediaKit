@@ -33,7 +33,7 @@ void loadPlugins() {
     // Get plugin directory path (./plugin relative to current directory)
     string plugin_dir = "./plugin";
     
-    if (!File::is_dir(plugin_dir.data())) {
+    if (!File::is_dir(plugin_dir.c_str())) {
         InfoL << "Plugin directory not found: " << plugin_dir << ", skipping plugin loading";
         return;
     }
@@ -55,7 +55,8 @@ void loadPlugins() {
         InfoL << "Loading plugin: " << path;
         
         // Load the shared library
-        void* handle = dlopen(path.data(), RTLD_LAZY | RTLD_LOCAL);
+        // Use RTLD_NOW to catch symbol resolution errors early
+        void* handle = dlopen(path.data(), RTLD_NOW | RTLD_LOCAL);
         if (!handle) {
             WarnL << "Failed to load plugin " << path << ": " << dlerror();
             return true;

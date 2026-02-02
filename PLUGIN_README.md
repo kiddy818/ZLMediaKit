@@ -248,9 +248,9 @@ All API handlers execute in MediaServer's event loop, ensuring thread safety.
 - 只加载受信任的插件
 - 插件与主程序共享相同的地址空间
 - 插件错误可能导致整个服务器崩溃
-- 建议在生产环境中测试插件
+- 建议在生产环境中充分测试插件
 
 - Only load trusted plugins
 - Plugins share the same address space as the main program
 - Plugin errors can crash the entire server
-- Test plugins in production environments is recommended
+- Testing plugins thoroughly in production environments is recommended
