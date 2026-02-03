@@ -1175,7 +1175,7 @@ void IceAgent::connectivityCheck(const Pair::Ptr &pair, CandidateTuple& candidat
 }
 
 void IceAgent::tryTriggerredCheck(const Pair::Ptr& pair) {
-    DebugL;
+    // DebugL;
     //FIXME 暂不实现,因为当前实现基本收到candidate就会发起check
 }
 
@@ -2043,4 +2043,23 @@ size_t IceAgent::getRecvTotalBytes() {
     return ret;
 }
 
+size_t IceAgent::getSendSpeed() {
+    size_t ret = 0;
+    for (auto s : _socket_candidate_manager.getAllSockets()) {
+        if (s && s->getSock()) {
+            ret += s->getSock()->getSendSpeed();
+        }
+    }
+    return ret;
+}
+
+size_t IceAgent::getSendTotalBytes() {
+    size_t ret = 0;
+    for (auto s : _socket_candidate_manager.getAllSockets()) {
+        if (s && s->getSock()) {
+            ret += s->getSock()->getSendTotalBytes();
+        }
+    }
+    return ret;
+}
 } // namespace RTC

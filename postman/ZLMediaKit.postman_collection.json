@@ -39,7 +39,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ZLMediaKit_URL}}/index/api/getApiList?secret={{ZLMediaKit_secret}}&id=stack_test",
+					"raw": "{{ZLMediaKit_URL}}/index/api/stack/stop?secret={{ZLMediaKit_secret}}&id=stack_test",
 					"host": [
 						"{{ZLMediaKit_URL}}"
 					],
@@ -2610,6 +2610,18 @@
 							"key": "file_repeat",
 							"value": "1",
 							"description": "是否循环点播mp4文件，如果配置文件已经开启循环点播，此参数无效",
+							"disabled": true
+						},
+						{
+							"key": "seek_ms",
+							"value": "0",
+							"description": "点播seek到特定位置，单位毫秒",
+							"disabled": true
+						},
+						{
+							"key": "speed",
+							"value": "1.0",
+							"description": "播放速度, float类型",
 							"disabled": true
 						},
 						{

@@ -71,6 +71,9 @@
 #include "VideoStack.h"
 #endif
 
+#include "Onvif/Onvif.h"
+#include "Onvif/SoapUtil.h"
+
 using namespace std;
 using namespace Json;
 using namespace toolkit;
@@ -391,6 +394,7 @@ Value makeMediaSourceJson(MediaSource &media){
     item["schema"] = media.getSchema();
     dumpMediaTuple(media.getMediaTuple(), item);
     item["createStamp"] = (Json::UInt64) media.getCreateStamp();
+    item["currentStamp"] = (Json::UInt64) media.getTimeStamp(TrackInvalid);
     item["aliveSecond"] = (Json::UInt64) media.getAliveSecond();
     item["bytesSpeed"] = (Json::UInt64) media.getBytesSpeed();
     item["totalBytes"] = (Json::UInt64) media.getTotalBytes();
@@ -713,7 +717,7 @@ void getThreadsLoad(TaskExecutorGetterImp &getter, API_ARGS_MAP_ASYNC) {
  * Install api interface
  * All apis support GET and POST methods
  * POST method parameters support application/json and application/x-www-form-urlencoded methods
- 
+
  * [AUTO-TRANSLATED:62e68c43]
  */
 void installWebApi() {
@@ -908,13 +912,28 @@ void installWebApi() {
     // Test url1 (get streams with virtual host "__defaultVost__") http://127.0.0.1/index/api/getMediaList?vhost=__defaultVost__
     // 测试url2(获取rtsp类型的流) http://127.0.0.1/index/api/getMediaList?schema=rtsp  [AUTO-TRANSLATED:21c2c15d]
     // Test url2 (get rtsp type streams) http://127.0.0.1/index/api/getMediaList?schema=rtsp
-    api_regist("/index/api/getMediaList",[](API_ARGS_MAP){
+    api_regist("/index/api/getMediaList",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
         // 获取所有MediaSource列表  [AUTO-TRANSLATED:7bf16dc2]
         // Get all MediaSource lists
+        std::list<MediaSource::Ptr> lst;
         MediaSource::for_each_media([&](const MediaSource::Ptr &media) {
-            val["data"].append(makeMediaSourceJson(*media));
+            lst.emplace_back(media);
         }, allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+
+        if (lst.size() == 1) {
+            // 如果是搜索单一流，那么在它的归属线程中执行，用于获取丢包率参数
+            auto front = std::move(lst.front());
+            front->getOwnerPoller()->async([=]() mutable {
+                val["data"].append(makeMediaSourceJson(*front));
+                invoker(200, headerOut, val.toStyledString());
+            });
+        } else {
+            for (auto &media : lst) {
+                val["data"].append(makeMediaSourceJson(*media));
+            }
+            invoker(200, headerOut, val.toStyledString());
+        }
     });
 
     // 测试url http://127.0.0.1/index/api/isMediaOnline?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs  [AUTO-TRANSLATED:126a75e8]
@@ -1060,6 +1079,7 @@ void installWebApi() {
             }
             fillSockInfo(jsession, session.get());
             jsession["id"] = id;
+            jsession["type"] = session->getSock()->sockType() == SockNum::Sock_TCP ? "tcp" : "udp";
             jsession["typeid"] = toolkit::demangle(typeid(*session).name());
             val["data"].append(jsession);
         });
@@ -2251,6 +2271,19 @@ void installWebApi() {
         // sample_ms设置为0，从配置文件加载；file_repeat可以指定，如果配置文件也指定循环解复用，那么强制开启  [AUTO-TRANSLATED:23e826b4]
         // sample_ms is set to 0, loaded from the configuration file; file_repeat can be specified, if the configuration file also specifies loop demultiplexing, then force it to be enabled
         reader->startReadMP4(0, true, allArgs["file_repeat"]);
+        auto seek_ms = allArgs["seek_ms"].as<uint32_t>();
+        auto speed = allArgs["speed"].as<float>();
+        if (seek_ms || speed) {
+            auto p = static_pointer_cast<MediaSourceEvent>(reader);
+            p->getOwnerPoller(MediaSource::NullMediaSource())->async([seek_ms, speed, p]() {
+                if (seek_ms) {
+                    p->seekTo(MediaSource::NullMediaSource(), seek_ms);
+                }
+                if (speed && speed != 1.0) {
+                    p->speed(MediaSource::NullMediaSource(), speed);
+                }
+            });
+        }
         val["data"]["duration_ms"] = (Json::UInt64)reader->getDemuxer()->getDurationMS();
     });
 #endif
@@ -2306,6 +2339,53 @@ void installWebApi() {
             // No one is listening to the file download authentication event, download is not allowed
             invoker(401, StrCaseMap {}, "None http access event listener");
         }
+    });
+
+
+    api_regist("/index/api/searchOnvifDevice",[](API_ARGS_MAP_ASYNC){
+       CHECK_SECRET();
+       CHECK_ARGS("timeout_ms");
+
+       auto result = std::make_shared<Value>(std::move(val));
+       auto complete_token = std::make_shared<onceToken>(nullptr, [result, headerOut, invoker]() {
+           invoker(200, headerOut, result->toStyledString());
+       });
+       auto lam_search = [complete_token, result](const std::map<string, string> &device_info,
+                                                  const std::string &onvif_url) {
+           Value obj;
+           obj["onvif_url"] = onvif_url;
+           for (auto &pr : device_info) {
+               obj[pr.first] = pr.second;
+           }
+           (*result)["data"].append(std::move(obj));
+           //继续等待扫描
+           return true;
+       };
+       OnvifSearcher::Instance().sendSearchBroadcast(std::move(lam_search), allArgs["timeout_ms"]);
+   });
+
+    api_regist("/index/api/getStreamUrl", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
+        CHECK_ARGS("onvif_url");
+
+        SoapUtil::asyncGetStreamUri(allArgs["onvif_url"],[val, headerOut, allArgs, invoker]
+                (const SoapErr &err, const SoapUtil::GetStreamUriRetryInvoker &retry_invoker,
+                 int retry_count, const std::string &url) mutable {
+            if (err && retry_count == 0 && !allArgs["user_name"].empty() /* &&
+                (err.httpCode() == 400 || err.httpCode() == 401)*/) {
+                //第一次失败，且提供了用户密码，且确定是鉴权失败
+                retry_invoker(allArgs["user_name"], allArgs["passwd"]);
+                return;
+            }
+            val["code"] = err ? API::OtherFailed : API::Success;
+            if (err) {
+                val["http_code"] = err.httpCode();
+                val["msg"] = (string) err;
+            } else {
+                val["url"] = url;
+            }
+            invoker(200, headerOut, val.toStyledString());
+        });
     });
 
 #if defined(ENABLE_VIDEOSTACK) && defined(ENABLE_X264) && defined(ENABLE_FFMPEG)

@@ -165,6 +165,8 @@ public:
     void getTransportInfo(const std::function<void(Json::Value)> &callback) const;
     size_t getRecvSpeed() const { return _ice_agent ? _ice_agent->getRecvSpeed() : 0; }
     size_t getRecvTotalBytes() const { return _ice_agent ? _ice_agent->getRecvTotalBytes() : 0; }
+    size_t getSendSpeed() const { return _ice_agent ? _ice_agent->getSendSpeed() : 0; }
+    size_t getSendTotalBytes() const { return _ice_agent ? _ice_agent->getSendTotalBytes() : 0; }
 
     void setOnShutdown(std::function<void(const toolkit::SockException &ex)> cb);
 
@@ -284,7 +286,7 @@ public:
 
 struct WrappedMediaTrack {
     MediaTrack::Ptr track;
-    explicit WrappedMediaTrack(MediaTrack::Ptr ptr): track(ptr) {}
+    explicit WrappedMediaTrack(MediaTrack::Ptr ptr): track(std::move(ptr)) {}
     virtual ~WrappedMediaTrack() {}
     virtual void inputRtp(const char *buf, size_t len, uint64_t stamp_ms, RtpHeader *rtp) = 0;
 };
@@ -380,6 +382,7 @@ private:
     // pli rtcp timer
     toolkit::Ticker _pli_ticker;
 
+    toolkit::Ticker _rtcp_sr_send_ticker;
     toolkit::Ticker _rtcp_rr_send_ticker;
 
     // twcc rtcp发送上下文对象  [AUTO-TRANSLATED:aef6476a]
