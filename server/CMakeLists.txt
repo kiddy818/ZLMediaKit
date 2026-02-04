@@ -54,6 +54,11 @@ if(MINGW)
   update_cached_list(MK_LINK_LIBRARIES dbghelp)
 endif()
 
+if(LINK_WEB_EXTENSION STREQUAL "ON")
+  target_compile_definitions(MediaServer PUBLIC WEB_EXTENSION=1)
+  update_cached_list(MK_LINK_LIBRARIES $ENV{WEB_EXTENSION_LIB_PATH}/libweb_extension.a)
+endif()
+
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   target_link_libraries(MediaServer -Wl,--start-group ${MK_LINK_LIBRARIES} -Wl,--end-group)
 else()

@@ -50,6 +50,12 @@ using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
+#if defined(WEB_EXTENSION)
+extern "C" {
+    void web_extension_regist();
+}
+#endif
+
 namespace mediakit {
 // //////////HTTP配置///////////  [AUTO-TRANSLATED:a281d694]
 // //////////HTTP configuration///////////
@@ -407,6 +413,10 @@ int start_main(int argc,char *argv[]) {
         InfoL << "已启动http api 接口";
         installWebHook();
         InfoL << "已启动http hook 接口";
+
+        #if defined(WEB_EXTENSION)
+        web_extension_regist();
+        #endif
         
         // 加载插件  [AUTO-TRANSLATED:load plugins]
         // Load plugins

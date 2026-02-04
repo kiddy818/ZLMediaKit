@@ -111,7 +111,10 @@ string(TOLOWER ${CMAKE_SYSTEM_NAME} SYSTEM_NAME_LOWER)
 # Windows 也不再区分 32/64
 # Set the output directory, including bin, lib and other files
 # Windows no longer distinguishes 32/64
-set(OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/release/${SYSTEM_NAME_LOWER}/${CMAKE_BUILD_TYPE})
+
+# 增加目标系统的标识[CMAKE_SYSTEM_PROCESSOR]
+set(OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/release/${SYSTEM_NAME_LOWER}/${CMAKE_SYSTEM_PROCESSOR}/${CMAKE_BUILD_TYPE})
+
 set(LIBRARY_OUTPUT_PATH    ${OUTPUT_DIR})
 set(EXECUTABLE_OUTPUT_PATH ${OUTPUT_DIR})
 

@@ -51,3 +51,5 @@
 /3rdpart/ZLToolKit/cmake-build-mq/
 example_plugin/build/
 _codeql_build_dir/
+
+.codeartsdoer
