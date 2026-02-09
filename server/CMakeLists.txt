@@ -56,7 +56,9 @@ endif()
 
 if(LINK_WEB_EXTENSION STREQUAL "ON")
   target_compile_definitions(MediaServer PUBLIC WEB_EXTENSION=1)
-  update_cached_list(MK_LINK_LIBRARIES $ENV{WEB_EXTENSION_LIB_PATH}/libweb_extension.a)
+  find_library(WEB_EXT_LIB NAMES web_extension PATHS ${WEB_EXTENSION_LIB_PATH}/${CMAKE_SYSTEM_PROCESSOR}/lib NO_DEFAULT_PATH REQUIRED)
+  message(STATUS "found library: ${WEB_EXT_LIB}")
+  target_link_libraries(MediaServer ${WEB_EXT_LIB})
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
